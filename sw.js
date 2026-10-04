@@ -1,4 +1,4 @@
-const CACHE_NAME = 'my-tasks-1791137215';
+const CACHE_NAME = 'my-tasks-1791139040';
 const CORE_ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', (event) => {

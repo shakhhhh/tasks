@@ -182,6 +182,45 @@ button{cursor:pointer;background:none;border:0;padding:0}
 .chart .col small{font-size:10px;color:var(--muted)}
 .chart .col em{font-style:normal;font-size:10px;color:var(--muted);font-variant-numeric:tabular-nums}
 
+/* groups */
+.gbar{display:flex;gap:6px;overflow-x:auto;margin:-4px 0 16px;padding-bottom:2px;scrollbar-width:none}
+.gbar::-webkit-scrollbar{display:none}
+.gbar button{flex:none;padding:6px 12px;border-radius:99px;background:var(--panel);border:1px solid var(--line);font-size:13px;white-space:nowrap}
+.gbar button small{color:var(--muted);font-size:11px;margin-left:2px;font-variant-numeric:tabular-nums}
+.gbar button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+.gbar button.on small{color:var(--accent)}
+.gbar .gedit{color:var(--muted)}
+.glist{display:flex;flex-direction:column;gap:6px}
+.grow-row{display:flex;align-items:center;gap:6px}
+.grow-row input,.sub-add .gemoji{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 10px;outline:none;min-width:0}
+.grow-row input:focus{border-color:var(--accent)}
+.gemoji{width:52px;flex:none;text-align:center}
+.gname{flex:1}
+.gcount{width:22px;text-align:right;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums;flex:none}
+.gmove,.gdel{width:34px;height:38px;border-radius:9px;color:var(--muted);flex:none}
+.gmove:hover,.gdel:hover{background:var(--panel2)}
+.gmove:disabled{opacity:.3;cursor:default}
+.gdel{color:var(--bad)}
+.gstats{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.gstat{display:grid;grid-template-columns:minmax(0,9em) minmax(0,1fr) 2.5em;align-items:center;gap:10px;font-size:14px}
+.gstat span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gstat i{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden}
+.gstat b{display:block;height:100%;background:var(--accent);border-radius:99px}
+.gstat em{font-style:normal;color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+
+/* timer settings */
+.tset{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px;text-align:left}
+.tset-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.tset-row > span:first-child{flex:1;min-width:5em;font-weight:500}
+.tset-row em{font-style:normal;color:var(--muted);font-size:13px}
+.stepper{display:inline-flex;align-items:center;background:var(--panel2);border-radius:10px;padding:3px;gap:2px}
+.stepper button{min-width:34px;height:32px;border-radius:8px;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.stepper button:hover{background:var(--panel);color:var(--text)}
+.stepper input{width:52px;height:32px;text-align:center;background:var(--panel);border:1px solid var(--line);border-radius:8px;font-weight:600;font-variant-numeric:tabular-nums;-moz-appearance:textfield}
+.stepper input::-webkit-outer-spin-button,.stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.tset-presets{display:flex;flex-wrap:wrap;gap:6px;font-size:13px}
+.tset-presets .chip{padding:4px 10px;cursor:pointer}
+
 /* search */
 .search-box{width:100%;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px 14px;outline:none;margin-bottom:14px}
 .search-box:focus{border-color:var(--accent)}
@@ -236,7 +275,28 @@ button{cursor:pointer;background:none;border:0;padding:0}
 <script>
 /* ================= storage: cloud (claude.ai db) or this device ================= */
 const KEY = 'my-tasks-v1';
-let state = { tasks: [], log: [], theme: 'auto' };
+const DEFAULT_GROUPS = [
+  { id: 'work', name: 'Работа', emoji: '💼' }, { id: 'trading', name: 'Трейдинг', emoji: '📈' },
+  { id: 'shop', name: 'Покупки', emoji: '🛒' }, { id: 'family', name: 'Семья', emoji: '👨‍👩‍👧' },
+  { id: 'sport', name: 'Спорт', emoji: '🏃' }, { id: 'study', name: 'Учёба', emoji: '📚' },
+  { id: 'home', name: 'Дом', emoji: '🏠' }, { id: 'personal', name: 'Личное', emoji: '🙂' },
+];
+const DEFAULT_TIMER = { work: 25, short: 5, long: 15 };
+let state = { tasks: [], log: [], theme: 'auto', groups: clone(DEFAULT_GROUPS), timer: clone(DEFAULT_TIMER) };
+function settingsObj(){ return { theme: state.theme, groups: state.groups, timer: state.timer }; }
+function applySettings(s){
+  if (!s) return;
+  if (Array.isArray(s.groups)) state.groups = clone(s.groups);
+  if (s.timer && typeof s.timer === 'object') state.timer = Object.assign(clone(DEFAULT_TIMER), clone(s.timer));
+  const th = s.theme || 'auto';
+  if (th !== state.theme) { state.theme = th; applyTheme(); }
+}
+function normalize(){
+  if (!['auto','light','dark'].includes(state.theme)) state.theme = 'auto';
+  if (!Array.isArray(state.groups)) state.groups = clone(DEFAULT_GROUPS);
+  state.timer = Object.assign(clone(DEFAULT_TIMER), state.timer || {});
+  state.tasks.forEach(t => { if (t.group === undefined) t.group = ''; });
+}
 const inArtifact = !!(window.claude && typeof window.claude.use === 'function');
 const tgApp = window.Telegram && window.Telegram.WebApp;
 const inTelegram = !inArtifact && !!(tgApp && tgApp.initData && tgApp.CloudStorage && tgApp.isVersionAtLeast && tgApp.isVersionAtLeast('6.9'));
@@ -259,19 +319,19 @@ function desiredDocs(){
   const byMonth = {};
   state.log.forEach(l => (byMonth[l.d.slice(0,7)] = byMonth[l.d.slice(0,7)] || []).push(l));
   Object.keys(byMonth).forEach(k => m.set('log_' + k, { items: byMonth[k] }));
-  m.set('settings', { theme: state.theme });
+  m.set('settings', settingsObj());
   return m;
 }
 function stateFromKnown(){
-  const tasks = [], log = []; let theme = state.theme;
+  const tasks = [], log = []; let settings = null;
   [...cloud.known.keys()].sort().forEach(k => {
     const v = cloud.known.get(k);
     if (k.startsWith('t_')) tasks.push(clone(v));
     else if (k.startsWith('log_')) (v.items || []).forEach(x => log.push(clone(x)));
-    else if (k === 'settings') theme = v.theme || 'auto';
+    else if (k === 'settings') settings = v;
   });
   state.tasks = tasks; state.log = log;
-  if (theme !== state.theme) { state.theme = theme; applyTheme(); }
+  applySettings(settings); normalize();
 }
 function save(){
   if (inTelegram) { saveLocal(); tgSchedule(); return; }
@@ -348,7 +408,7 @@ async function tgRead(){
 }
 function tgApply(data){
   state.tasks = Array.isArray(data.tasks) ? data.tasks : []; state.log = Array.isArray(data.log) ? data.log : [];
-  if (data.theme && data.theme !== state.theme) { state.theme = data.theme; applyTheme(); }
+  applySettings(data); normalize();
   saveLocal();
 }
 function tgSchedule(){ if (!tg.ready) return; clearTimeout(tg.timer); tg.timer = setTimeout(tgFlush, 400); }
@@ -359,7 +419,7 @@ async function tgFlush(){
     do {
       tg.dirty = false;
       if (state.log.length > 2000) state.log.splice(0, state.log.length - 2000);
-      const parts = JSON.stringify({ tasks: state.tasks, log: state.log, theme: state.theme }).match(/[\s\S]{1,4000}/g) || [''];
+      const parts = JSON.stringify(Object.assign({ tasks: state.tasks, log: state.log }, settingsObj())).match(/[\s\S]{1,4000}/g) || [''];
       for (let i = 0; i < parts.length; i++) if (tg.chunks[i] !== parts[i]) await cs('setItem', 's' + i, parts[i]);
       if (parts.length !== tg.chunks.length) {
         await cs('setItem', 'n', String(parts.length));
@@ -385,7 +445,7 @@ async function initTelegram(){
   tgApp.ready(); tgApp.expand();
   try { if (tgApp.isVersionAtLeast('7.7')) tgApp.disableVerticalSwipes(); } catch(e){}
   tgApp.onEvent('themeChanged', () => { applyTheme(); render(); });
-  tgApp.BackButton.onClick(() => { if (ui.editing) closeEditor(); else if (ui.menu) { ui.menu = false; render(); } });
+  tgApp.BackButton.onClick(() => { if (ui.editing) closeEditor(); else if (ui.sheet) closeSheet(); else if (ui.menu) { ui.menu = false; render(); } });
   try {
     const { parts, data } = await tgRead();
     tg.chunks = parts; tg.ready = true;
@@ -408,8 +468,8 @@ const STATUS = {
 function setStatus(s){ cloud.status = s; const d = document.getElementById('syncdot'); if (d) d.className = 'sync-dot ' + s; }
 
 /* ================= ui state ================= */
-const ui = { view: 'day', cursor: todayKey(), open: new Set(), showDone: {}, editing: null, focusId: null, menu: false, q: '', loading: inArtifact || inTelegram };
-try { const v = localStorage.getItem(KEY + ':view'); if (v && v !== 'search') ui.view = v; } catch(e){}
+const ui = { view: 'day', cursor: todayKey(), open: new Set(), showDone: {}, editing: null, sheet: null, focusId: null, menu: false, q: '', group: 'all', timerEdit: false, loading: inArtifact || inTelegram };
+try { const v = localStorage.getItem(KEY + ':view'); if (v && v !== 'search') ui.view = v; ui.group = localStorage.getItem(KEY + ':group') || 'all'; } catch(e){}
 
 /* ================= dates ================= */
 function pad(n){ return String(n).padStart(2,'0'); }
@@ -451,7 +511,7 @@ const SCOPE = { day:'День', week:'Неделя', month:'Месяц' };
 
 /* ================= undo / toast ================= */
 let undoSnap = null, toastTimer = null;
-function snapshot(){ undoSnap = JSON.stringify({ tasks: state.tasks, log: state.log }); }
+function snapshot(){ undoSnap = JSON.stringify({ tasks: state.tasks, log: state.log, groups: state.groups }); }
 function toast(msg, withUndo){
   clearTimeout(toastTimer);
   const old = document.getElementById('toast'); if (old) old.remove();
@@ -464,7 +524,7 @@ function undo(){ if (!undoSnap) return; Object.assign(state, JSON.parse(undoSnap
 
 /* ================= task operations ================= */
 function newTask(fields){
-  return Object.assign({ id: uid(), title: '', notes: '', scope: 'day', date: todayKey(), time: '', priority: 0, tag: '', repeat: 'none', subs: [], done: false, doneAt: null, createdAt: Date.now() }, fields);
+  return Object.assign({ id: uid(), title: '', notes: '', scope: 'day', date: todayKey(), time: '', priority: 0, tag: '', group: currentGroup(), repeat: 'none', subs: [], done: false, doneAt: null, createdAt: Date.now() }, fields);
 }
 // "Позвонить врачу в 15:30 #здоровье !!"
 function parseQuick(text){
@@ -478,6 +538,9 @@ function quickAdd(scope, date, inputId){
   const inp = document.getElementById(inputId); const raw = inp.value.trim(); if (!raw) return;
   const p = parseQuick(raw);
   if (scope !== 'day') p.time = '';
+  // "#работа" picks the group with that name; any other #word stays a tag
+  const g = p.tag && state.groups.find(x => x.name.toLowerCase() === p.tag.toLowerCase());
+  if (g) { p.group = g.id; p.tag = ''; }
   state.tasks.push(newTask(Object.assign(p, { scope, date: anchorFor(scope, date) })));
   inp.value = '';
   save(); render();
@@ -492,7 +555,7 @@ function nextRepeat(t){
   }
   return null;
 }
-function logDone(t){ state.log.push({ d: todayKey(), t: t.title, tag: t.tag || '' }); if (state.log.length > 5000) state.log.splice(0, state.log.length - 5000); }
+function logDone(t){ state.log.push({ d: todayKey(), t: t.title, tag: t.tag || '', g: t.group || '' }); if (state.log.length > 5000) state.log.splice(0, state.log.length - 5000); }
 function toggleTask(id, quiet){
   const t = byId(id); if (!t) return;
   if (!quiet) snapshot();
@@ -546,9 +609,14 @@ function toggleOpen(id){ ui.open.has(id) ? ui.open.delete(id) : ui.open.add(id);
 function sortTasks(arr){
   return arr.slice().sort((a,b) => (a.done - b.done) || ((a.time ? 0 : 1) - (b.time ? 0 : 1)) || (a.time || '').localeCompare(b.time || '') || (b.priority - a.priority) || (a.createdAt - b.createdAt));
 }
-function tasksOn(scope, anchor){ return state.tasks.filter(t => t.scope === scope && t.date === anchor); }
-function overdue(){ const t = todayKey(); return state.tasks.filter(x => x.scope === 'day' && !x.done && x.date < t); }
-function carried(scope){ const cur = anchorFor(scope, todayKey()); return state.tasks.filter(x => x.scope === scope && !x.done && x.date < cur); }
+function groupOf(t){ return t.group ? state.groups.find(g => g.id === t.group) : null; }
+function currentGroup(){ return ui.group !== 'all' && ui.group !== 'none' && state.groups.some(g => g.id === ui.group) ? ui.group : ''; }
+function inGroup(t){ return ui.group === 'all' || (ui.group === 'none' ? !groupOf(t) : t.group === ui.group); }
+function visible(){ return state.tasks.filter(inGroup); }
+function tasksOn(scope, anchor){ return visible().filter(t => t.scope === scope && t.date === anchor); }
+function overdue(){ const t = todayKey(); return visible().filter(x => x.scope === 'day' && !x.done && x.date < t); }
+function carried(scope){ const cur = anchorFor(scope, todayKey()); return visible().filter(x => x.scope === scope && !x.done && x.date < cur); }
+function setGroup(id){ ui.group = id; try { localStorage.setItem(KEY + ':group', id); } catch(e){} render(); }
 function allTags(){ return [...new Set(state.tasks.map(t => t.tag).filter(Boolean))].sort(); }
 
 /* ================= rendering pieces ================= */
@@ -566,6 +634,8 @@ function taskHtml(t, opts = {}){
   }
   if ((opts.showScope || opts.showDate) && t.scope !== 'day') meta.push(`<span class="chip">${t.scope === 'week' ? 'неделя ' + esc(weekLabel(t.date)) : 'месяц: ' + esc(MONTHS[parse(t.date).getMonth()])}</span>`);
   if (opts.carried) meta.push(`<span class="chip bad">с прошл. ${t.scope === 'week' ? 'недели' : 'месяца'}</span>`);
+  const grp = groupOf(t);
+  if (grp && ui.group !== grp.id) meta.push(`<span class="chip">${esc(grp.emoji)} ${esc(grp.name)}</span>`);
   if (t.tag) meta.push(`<span class="chip tag">#${esc(t.tag)}</span>`);
   if (t.subs.length) meta.push(`<span class="chip ${doneSubs === t.subs.length ? 'ok' : ''}">${doneSubs}/${t.subs.length} шагов</span>`);
   if (t.repeat !== 'none') meta.push(`<span class="chip">↻ ${esc(REPEAT[t.repeat].toLowerCase())}</span>`);
@@ -635,7 +705,17 @@ function headerHtml(title, sub, showNav){
   </div>
   <div class="tabs">
     ${[['day','День'],['week','Неделя'],['month','Месяц'],['focus','Фокус'],['stats','Итоги']].map(([v,l]) => `<button class="${ui.view === v ? 'on' : ''}" onclick="setView('${v}')">${l}</button>`).join('')}
-  </div>`;
+  </div>
+  ${['day','week','month','focus'].includes(ui.view) ? groupBarHtml() : ''}`;
+}
+function groupBarHtml(){
+  const open = state.tasks.filter(t => !t.done);
+  const cnt = id => open.filter(t => id === 'none' ? !groupOf(t) : t.group === id).length;
+  const items = [['all', 'Все', open.length]].concat(state.groups.map(g => [g.id, g.emoji + ' ' + g.name, cnt(g.id)]));
+  if (cnt('none')) items.push(['none', 'Без группы', cnt('none')]);
+  return `<div class="gbar" role="tablist" aria-label="Группы">${items.map(([id, l, n]) =>
+    `<button class="${ui.group === id ? 'on' : ''}" onclick="setGroup('${id}')">${esc(l)}${n ? ` <small>${n}</small>` : ''}</button>`).join('')}
+    <button class="gedit" onclick="openSheet('groups')" aria-label="Настроить группы">✎</button></div>`;
 }
 function shift(dir){
   ui.cursor = ui.view === 'day' ? addDays(ui.cursor, dir) : ui.view === 'week' ? addDays(ui.cursor, dir*7) : addMonths(monthStart(ui.cursor), dir);
@@ -689,7 +769,7 @@ function monthView(){
   const d0 = parse(ms), daysIn = new Date(d0.getFullYear(), d0.getMonth()+1, 0).getDate();
   const start = weekStart(ms);
   const mt = tasksOn('month', ms);
-  const all = mt.concat(state.tasks.filter(t => t.scope === 'day' && t.date.slice(0,7) === ms.slice(0,7))), doneN = all.filter(t => t.done).length;
+  const all = mt.concat(visible().filter(t => t.scope === 'day' && t.date.slice(0,7) === ms.slice(0,7))), doneN = all.filter(t => t.done).length;
   let h = headerHtml(monthLabel(ms), all.length ? `выполнено ${doneN} из ${all.length}` : 'задач пока нет', true);
   const cells = Math.ceil((dow(ms) + daysIn) / 7) * 7;
   h += `<div class="cal">${DOW.map(x => `<div class="dow">${x}</div>`).join('')}`;
@@ -717,22 +797,25 @@ function searchView(){
   const q = ui.q.trim().toLowerCase();
   if (!q) {
     const tags = allTags();
-    h += tags.length ? `<div class="section"><div class="section-h">Метки</div><div class="meta" style="font-size:14px">${tags.map(t => `<button class="chip tag" onclick="ui.q='#${esc(t)}';render()">#${esc(t)}</button>`).join('')}</div></div>` : `<div class="empty">Начни вводить — найдутся задачи за все дни, недели и месяцы.</div>`;
+    h += `<div class="section"><div class="section-h">Группы</div><div class="meta" style="font-size:14px">${state.groups.map(g => `<button class="chip" onclick="ui.q='#${esc(g.name)}';render()">${esc(g.emoji)} ${esc(g.name)}</button>`).join('')}</div></div>`;
+    if (tags.length) h += `<div class="section"><div class="section-h">Метки</div><div class="meta" style="font-size:14px">${tags.map(t => `<button class="chip tag" onclick="ui.q='#${esc(t)}';render()">#${esc(t)}</button>`).join('')}</div></div>`;
     return h;
   }
-  const res = state.tasks.filter(t => q.startsWith('#') ? (t.tag || '').toLowerCase() === q.slice(1) :
-    (t.title + ' ' + t.notes + ' ' + t.tag + ' ' + t.subs.map(s => s.text).join(' ')).toLowerCase().includes(q));
+  const res = state.tasks.filter(t => q.startsWith('#') ? ((t.tag || '').toLowerCase() === q.slice(1) || ((groupOf(t) || {}).name || '').toLowerCase() === q.slice(1)) :
+    (t.title + ' ' + t.notes + ' ' + t.tag + ' ' + ((groupOf(t) || {}).name || '') + ' ' + t.subs.map(s => s.text).join(' ')).toLowerCase().includes(q));
   res.sort((a,b) => (a.done - b.done) || a.date.localeCompare(b.date));
   h += `<div class="section"><div class="section-h">Найдено: ${res.length}</div>${listHtml(res, 'search', { showDate: true, empty: 'Ничего не нашлось' })}</div>`;
   return h;
 }
 
 /* ================= focus + pomodoro ================= */
-const timer = { mode: 25, end: null, left: 25*60, running: false, iv: null };
+const timer = { mode: 'work', end: null, left: 25*60, running: false, paused: false, iv: null };
+const TIMER_MODES = [['work', 'Работа'], ['short', 'Перерыв'], ['long', 'Отдых']];
+function timerLen(m){ return Math.max(1, Math.min(240, parseInt(state.timer[m], 10) || DEFAULT_TIMER[m])); }
 function startFocus(id){ ui.focusId = id; setView('focus'); }
 function focusCandidates(){
   const t = todayKey();
-  return sortTasks(state.tasks.filter(x => !x.done && (
+  return sortTasks(visible().filter(x => !x.done && (
     (x.scope === 'day' && x.date <= t) || (x.scope === 'week' && x.date <= weekStart(t)) || (x.scope === 'month' && x.date <= monthStart(t)))));
 }
 function focusView(){
@@ -760,21 +843,43 @@ function focusView(){
         <div class="actions"><button class="btn primary" onclick="toggleTask('${t.id}')">✓ Задача выполнена</button></div>`;
     }
   }
+  if (!timer.running && !timer.paused) timer.left = timerLen(timer.mode) * 60;
   h += `</div>
   <div class="focus-card">
-    <div class="seg">${[[25,'Работа 25'],[5,'Перерыв 5'],[15,'Отдых 15']].map(([m,l]) => `<button class="${timer.mode === m ? 'on' : ''}" onclick="setTimerMode(${m})">${l}</button>`).join('')}</div>
+    <div class="seg">${TIMER_MODES.map(([m,l]) => `<button class="${timer.mode === m ? 'on' : ''}" onclick="setTimerMode('${m}')">${l} ${timerLen(m)}</button>`).join('')}</div>
     <div class="timer" id="timer">${fmtTime(timerLeft())}</div>
-    <div class="actions"><button class="btn primary" onclick="toggleTimer()">${timer.running ? 'Пауза' : 'Старт'}</button><button class="btn" onclick="setTimerMode(timer.mode)">Сброс</button></div>
+    <div class="actions">
+      <button class="btn primary" onclick="toggleTimer()">${timer.running ? 'Пауза' : timer.paused ? 'Продолжить' : 'Старт'}</button>
+      <button class="btn" onclick="setTimerMode(timer.mode)">Сброс</button>
+      <button class="btn" onclick="ui.timerEdit=!ui.timerEdit;render()" aria-expanded="${ui.timerEdit}">⚙ Время</button>
+    </div>
+    ${ui.timerEdit ? `<div class="tset"><div class="section-h" style="margin:0">Длительность в минутах</div>
+      ${TIMER_MODES.map(([m,l]) => `<label class="tset-row" for="tm-${m}"><span>${l}</span>
+        <span class="stepper"><button onclick="bumpTimer('${m}',-5)" aria-label="${l}: меньше на 5 минут">−5</button><button onclick="bumpTimer('${m}',-1)" aria-label="${l}: меньше на минуту">−</button>
+        <input id="tm-${m}" type="number" inputmode="numeric" min="1" max="240" value="${timerLen(m)}" onchange="setTimerLen('${m}',this.value)">
+        <button onclick="bumpTimer('${m}',1)" aria-label="${l}: больше на минуту">+</button><button onclick="bumpTimer('${m}',5)" aria-label="${l}: больше на 5 минут">+5</button></span></label>`).join('')}
+      <div class="tset-presets">${[[25,5,15],[50,10,20],[90,15,30],[15,3,10]].map(p => `<button class="chip" onclick="setTimerPreset(${p.join(',')})">${p[0]} / ${p[1]} / ${p[2]}</button>`).join('')}</div>
+    </div>` : ''}
   </div>`;
   return h;
 }
 function timerLeft(){ return timer.running ? Math.max(0, Math.round((timer.end - Date.now()) / 1000)) : timer.left; }
-function fmtTime(s){ return pad(Math.floor(s/60)) + ':' + pad(s%60); }
-function setTimerMode(m){ timer.mode = m; timer.running = false; timer.left = m*60; clearInterval(timer.iv); document.title = 'Мои задачи'; render(); }
+function fmtTime(s){ const h = Math.floor(s/3600); return (h ? h + ':' + pad(Math.floor(s/60)%60) : pad(Math.floor(s/60))) + ':' + pad(s%60); }
+function setTimerMode(m){ timer.mode = m; timer.running = false; timer.paused = false; timer.left = timerLen(m)*60; clearInterval(timer.iv); document.title = 'Мои задачи'; render(); }
+function setTimerLen(m, v){
+  const n = Math.max(1, Math.min(240, parseInt(v, 10) || timerLen(m)));
+  if (n === state.timer[m]) { render(); return; }
+  state.timer[m] = n; save();
+  if (timer.mode === m && !timer.running) { timer.paused = false; timer.left = n*60; }
+  render();
+}
+function bumpTimer(m, d){ setTimerLen(m, timerLen(m) + d); }
+function setTimerPreset(w, s, l){ state.timer = { work: w, short: s, long: l }; save(); if (!timer.running) { timer.paused = false; timer.left = timerLen(timer.mode)*60; } render(); }
 function toggleTimer(){
-  if (timer.running) { timer.left = timerLeft(); timer.running = false; clearInterval(timer.iv); document.title = 'Мои задачи'; }
+  if (timer.running) { timer.left = timerLeft(); timer.running = false; timer.paused = true; clearInterval(timer.iv); document.title = 'Мои задачи'; }
   else {
-    if (timer.left <= 0) timer.left = timer.mode*60;
+    if (timer.left <= 0) timer.left = timerLen(timer.mode)*60;
+    timer.paused = false;
     timer.end = Date.now() + timer.left*1000; timer.running = true;
     unlockAudio();
     timer.iv = setInterval(tick, 500);
@@ -785,9 +890,12 @@ function tick(){
   const s = timerLeft(); const el = document.getElementById('timer'); if (el) el.textContent = fmtTime(s);
   document.title = fmtTime(s) + ' · Фокус';
   if (s <= 0) {
-    clearInterval(timer.iv); timer.running = false; timer.left = 0; document.title = 'Мои задачи';
-    beep(); if (navigator.vibrate) navigator.vibrate([200,100,200]);
-    toast(timer.mode === 25 ? 'Время вышло, сделай перерыв' : 'Перерыв окончен, за дело!'); render();
+    clearInterval(timer.iv); timer.running = false; timer.paused = false; document.title = 'Мои задачи';
+    beep(); haptic('warning'); if (navigator.vibrate) navigator.vibrate([200,100,200]);
+    const wasWork = timer.mode === 'work';
+    toast(wasWork ? `Время вышло. Перерыв ${timerLen('short')} мин — нажми «Старт»` : 'Перерыв окончен, за дело!');
+    timer.mode = wasWork ? 'short' : 'work'; timer.left = timerLen(timer.mode)*60;
+    render();
   }
 }
 let audioCtx = null;
@@ -836,6 +944,12 @@ function statsView(){
   const max = Math.max(1, ...days.map(d => byDay[d] || 0));
   h += `<div class="section"><div class="section-h">Выполнено за 14 дней</div><div class="chart">${days.map(d => `
     <div class="col ${d === t ? 'today' : ''}" title="${human(d)}: ${byDay[d] || 0}"><em>${byDay[d] || ''}</em><i style="height:${(byDay[d] || 0) / max * 100}%"></i><small>${DOW[dow(d)]}</small></div>`).join('')}</div></div>`;
+  const byG = {}; state.log.filter(l => l.d.slice(0,7) === t.slice(0,7)).forEach(l => { const g = state.groups.find(x => x.id === l.g); const key = g ? g.emoji + ' ' + g.name : 'Без группы'; byG[key] = (byG[key] || 0) + 1; });
+  const gList = Object.entries(byG).sort((a,b) => b[1] - a[1]);
+  if (gList.length) {
+    const gmax = Math.max(...gList.map(x => x[1]));
+    h += `<div class="section"><div class="section-h">По группам в этом месяце</div><div class="gstats">${gList.map(([n,c]) => `<div class="gstat"><span>${esc(n)}</span><i><b style="width:${c/gmax*100}%"></b></i><em>${c}</em></div>`).join('')}</div></div>`;
+  }
   const tags = {}; state.log.filter(l => l.d.slice(0,7) === t.slice(0,7) && l.tag).forEach(l => tags[l.tag] = (tags[l.tag] || 0) + 1);
   const tagList = Object.entries(tags).sort((a,b) => b[1] - a[1]);
   if (tagList.length) h += `<div class="section"><div class="section-h">Метки в этом месяце</div><div class="meta" style="font-size:14px">${tagList.map(([n,c]) => `<span class="chip tag">#${esc(n)} · ${c}</span>`).join('')}</div></div>`;
@@ -853,6 +967,7 @@ function openEditor(id, preset){
   const defDate = ['day','week','month'].includes(ui.view) ? ui.cursor : todayKey();
   draft = t ? clone(t) : newTask(Object.assign({ scope: defScope, date: anchorFor(defScope, defDate) }, preset || {}));
   if (draft.time === undefined) draft.time = '';
+  if (draft.group === undefined) draft.group = '';
   ui.editing = t ? t.id : 'new';
   renderLayer();
   setTimeout(() => { const el = document.getElementById('ed-title'); if (el && !t) el.focus(); }, 50);
@@ -890,6 +1005,7 @@ function editorHtml(){
   return `<div class="overlay" onclick="if(event.target===this)closeEditor()"><div class="sheet" role="dialog" aria-label="${isNew ? 'Новая задача' : 'Изменить задачу'}">
     <h2>${isNew ? 'Новая задача' : 'Изменить задачу'}</h2>
     <div class="field"><label for="ed-title">Название</label><input id="ed-title" value="${esc(d.title)}" placeholder="Что нужно сделать?" onkeydown="if(event.key==='Enter')edSave()"></div>
+    <div class="field"><label>Группа</label><div class="pills">${[{ id: '', emoji: '', name: 'Без группы' }].concat(state.groups).map(g => `<button class="${(d.group || '') === g.id ? 'on' : ''}" onclick="edSet('group','${g.id}')">${esc(g.emoji)} ${esc(g.name)}</button>`).join('')}</div></div>
     <div class="field"><label>Период</label><div class="pills">${Object.entries(SCOPE).map(([k,l]) => `<button class="${d.scope === k ? 'on' : ''}" onclick="edSet('scope','${k}')">${l}</button>`).join('')}</div></div>
     <div class="row2">
       <div class="field"><label for="ed-date">${d.scope === 'day' ? 'Дата' : d.scope === 'week' ? 'Неделя (любой день)' : 'Месяц'}</label><input id="ed-date" type="${d.scope === 'month' ? 'month' : 'date'}" value="${dateVal}"></div>
@@ -923,6 +1039,7 @@ function menuHtml(){
     <div class="info"><b>${esc(title)}</b>${esc(text)}</div>
     <hr>
     <button onclick="cycleTheme()">◐ ${THEME_NAME[state.theme] || THEME_NAME.auto}</button>
+    <button onclick="openSheet('groups')">✎ Группы задач</button>
     <hr>
     <button onclick="exportData()">⬇ ${inTelegram ? 'Скопировать резервную копию' : 'Сохранить копию в файл'}</button>
     <button onclick="document.getElementById('importFile').click()">⬆ Загрузить из файла</button>
@@ -930,6 +1047,54 @@ function menuHtml(){
     <button onclick="clearDone()">Убрать выполненные</button>
   </div>`;
 }
+/* ================= groups manager ================= */
+function openSheet(name){ ui.menu = false; ui.sheet = name; render(); renderLayer(); }
+function closeSheet(){ ui.sheet = null; renderLayer(); render(); }
+function groupsHtml(){
+  return `<div class="overlay" onclick="if(event.target===this)closeSheet()"><div class="sheet" role="dialog" aria-label="Группы задач">
+    <h2>Группы задач</h2>
+    <div class="hint" style="margin:-8px 0 14px">Иконку можно заменить любым эмодзи. Изменения сохраняются сразу.</div>
+    <div class="glist">${state.groups.map((g, i) => {
+      const n = state.tasks.filter(t => t.group === g.id && !t.done).length;
+      return `<div class="grow-row">
+        <input id="ge-${g.id}" class="gemoji" value="${esc(g.emoji)}" maxlength="8" aria-label="Иконка группы ${esc(g.name)}" onchange="updateGroup('${g.id}','emoji',this.value)">
+        <input id="gn-${g.id}" class="gname" value="${esc(g.name)}" maxlength="30" aria-label="Название группы" onchange="updateGroup('${g.id}','name',this.value)">
+        <span class="gcount">${n || ''}</span>
+        <button class="gmove" onclick="moveGroup('${g.id}',-1)" ${i === 0 ? 'disabled' : ''} aria-label="Выше">↑</button>
+        <button class="gdel" onclick="deleteGroup('${g.id}')" aria-label="Удалить группу ${esc(g.name)}">✕</button>
+      </div>`; }).join('')}</div>
+    <div class="sub-add" style="margin-top:12px">
+      <input id="g-new-emoji" class="gemoji" placeholder="🗂" maxlength="8" aria-label="Иконка новой группы">
+      <input id="g-new-name" placeholder="Новая группа…" maxlength="30" aria-label="Название новой группы" onkeydown="if(event.key==='Enter')addGroup()">
+      <button class="btn" onclick="addGroup()">Добавить</button>
+    </div>
+    <div class="sheet-foot"><button class="btn primary" onclick="closeSheet()">Готово</button></div>
+  </div></div>`;
+}
+function updateGroup(id, field, value){
+  const g = state.groups.find(x => x.id === id); if (!g) return;
+  const v = value.trim(); if (!v && field === 'name') { renderLayer(); return; }
+  g[field] = v || '🗂'; save(); render();
+}
+function addGroup(){
+  const name = document.getElementById('g-new-name').value.trim(); if (!name) { document.getElementById('g-new-name').focus(); return; }
+  const emoji = document.getElementById('g-new-emoji').value.trim() || '🗂';
+  state.groups.push({ id: uid(), name, emoji }); save(); render(); renderLayer();
+  const el = document.getElementById('g-new-name'); if (el) el.focus();
+}
+function moveGroup(id, d){
+  const i = state.groups.findIndex(g => g.id === id), j = i + d; if (i < 0 || j < 0 || j >= state.groups.length) return;
+  [state.groups[i], state.groups[j]] = [state.groups[j], state.groups[i]]; save(); render(); renderLayer();
+}
+function deleteGroup(id){
+  const g = state.groups.find(x => x.id === id); if (!g) return;
+  snapshot();
+  state.groups = state.groups.filter(x => x.id !== id);
+  state.tasks.forEach(t => { if (t.group === id) t.group = ''; });
+  if (ui.group === id) setGroup('all');
+  save(); render(); renderLayer(); toast(`Группа «${g.name}» удалена, задачи остались без группы`, true);
+}
+
 const origTheme = document.documentElement.getAttribute('data-theme');
 function cycleTheme(){ const order = ['auto','light','dark']; state.theme = order[(order.indexOf(state.theme) + 1) % 3]; applyTheme(); save(); render(); }
 function applyTheme(){
@@ -942,7 +1107,7 @@ function applyTheme(){
 }
 async function exportData(){
   ui.menu = false; render();
-  const data = JSON.stringify({ tasks: state.tasks, log: state.log, theme: state.theme }, null, 2);
+  const data = JSON.stringify(Object.assign({ tasks: state.tasks, log: state.log }, settingsObj()), null, 2);
   const filename = `tasks-backup-${todayKey()}.json`;
   if (inTelegram) { try { await navigator.clipboard.writeText(data); toast('Копия скопирована. Вставь её в «Избранное» в Telegram, чтобы сохранить.'); } catch(e) { toast('Не удалось скопировать в буфер обмена'); } return; }
   if (inArtifact) {
@@ -971,6 +1136,9 @@ document.getElementById('importFile').addEventListener('change', e => {
         if (have.has(x.id)) return;
         state.tasks.push(x); have.add(x.id); added++;
       });
+      if (Array.isArray(data.groups)) data.groups.forEach(g => { if (g && g.id && g.name && !state.groups.some(x => x.id === g.id)) state.groups.push({ id: String(g.id), name: String(g.name), emoji: String(g.emoji || '🗂') }); });
+      if (data.timer && typeof data.timer === 'object') state.timer = Object.assign(clone(DEFAULT_TIMER), data.timer);
+      normalize();
       if (Array.isArray(data.log)) { const seen = new Set(state.log.map(l => l.d + '|' + l.t)); data.log.forEach(l => { if (l && l.d && !seen.has(l.d + '|' + l.t)) state.log.push(l); }); state.log.sort((a,b) => a.d.localeCompare(b.d)); }
       save(); render(); toast(`Добавлено задач: ${added}`, true);
     } catch(err) { toast('Не удалось прочитать файл. Нужна копия, сохранённая из этого приложения.'); }
@@ -994,12 +1162,12 @@ function render(){
   document.getElementById('fab').hidden = ['focus','stats','search'].includes(ui.view);
 }
 function renderLayer(){
-  document.getElementById('layer').innerHTML = ui.editing ? editorHtml() : '';
-  if (inTelegram) { try { ui.editing ? tgApp.BackButton.show() : tgApp.BackButton.hide(); } catch(e){} }
+  document.getElementById('layer').innerHTML = ui.editing ? editorHtml() : ui.sheet === 'groups' ? groupsHtml() : '';
+  if (inTelegram) { try { (ui.editing || ui.sheet) ? tgApp.BackButton.show() : tgApp.BackButton.hide(); } catch(e){} }
 }
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') { if (ui.editing) closeEditor(); else if (ui.menu) { ui.menu = false; render(); } }
-  if (!ui.editing && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+  if (e.key === 'Escape') { if (ui.editing) closeEditor(); else if (ui.sheet) closeSheet(); else if (ui.menu) { ui.menu = false; render(); } }
+  if (!ui.editing && !ui.sheet && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && !e.ctrlKey && !e.metaKey && !e.altKey) {
     if (e.key === 'n' || e.key === 'т') { e.preventDefault(); openEditor(); }
     if (e.key === '/') { e.preventDefault(); setView('search'); }
   }
@@ -1011,7 +1179,8 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden) { da
 setInterval(() => { dayCheck(); checkReminders(); }, 20000);
 
 loadLocal();
-if (!['auto','light','dark'].includes(state.theme)) state.theme = 'auto';
+normalize();
+if (ui.group !== 'all' && ui.group !== 'none' && !state.groups.some(g => g.id === ui.group)) ui.group = 'all';
 applyTheme(); render();
 if (inTelegram) initTelegram(); else initCloud();
 if (!inArtifact && 'serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
